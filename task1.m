@@ -44,7 +44,7 @@ yq = Mq(y_index + 1);
 y = compand(yq, A, Amax, 'A/expander');
 Yf = fft(y);
 Yf = fftshift(Yf);
-%% Plotting
+%% --------------------------------Plotting--------------------------------
 figure(1)
 subplot(211)
 plot(t, s);
