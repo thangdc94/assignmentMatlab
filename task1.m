@@ -6,7 +6,7 @@ clc;
 %% Initialize parameters
 fs = 8000;
 Ts = 1/fs;
-L = 16; % so muc luong tu
+L = 256; % so muc luong tu
 Nb = log2(L); % so bit can cho ma hoa
 fm = [200 800 100];
 Am = [1 2 3];
