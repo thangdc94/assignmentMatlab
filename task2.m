@@ -12,7 +12,7 @@ fm = [200 800 100];
 Am = [1 2 3];
 A = 87.6; % compression parameter
 phi = [0 pi/2 pi/4];
-t = 0:Ts:0.1; % 0.1s
+t = 0:Ts:1; % 1s
 Ns = length(t);
 f = (-Ns/2:1:Ns/2-1)/(Ns*Ts);
 %% Sampling
@@ -125,7 +125,7 @@ ylabel('BER');
 %% Task 2c
 
 % Constellation
-h = scatterplot(d_noise(2, :),1,0,'xb');
+h = scatterplot(d_noise(:, 2),1,0,'xb');
 hold on;
 scatterplot(d,1,0,'or', h);
 grid on;
@@ -154,8 +154,10 @@ grid on;
 % Eye diagram
 eyediagram([real(s_mod) imag(s_mod)],length(p)*2)
 title('Bieu do mat tin hieu phat')
+grid on;
 eyediagram([real(y_noise) imag(y_noise)],length(p)*2)
 title('Bieu do mat tin hieu tai bo thu')
+grid on;
 
 %% Task 2d
 figure(7)
