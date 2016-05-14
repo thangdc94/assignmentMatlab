@@ -50,7 +50,7 @@ M = 8; % so muc dieu che 8-PSK
 SNR = [5 8 12]; % [dB]
 %% Modulation
 % Create a 8-PSK modulator System object with bits as inputs and Gray-coded signal constellation
-hModulator = comm.PSKModulator(M,'BitInput',true);
+hModulator = comm.PSKModulator(M, 'BitInput', true);
 % Modulate and plot the data
 d = step(hModulator, data);
 
@@ -67,30 +67,29 @@ s_mod = s_mod';
 s_mod = s_mod(:)';
 
 %% Transmit signal through an AWGN channel.
-d_noise = zeros(size(SNR), size(d));
+d_noise = zeros(size(d), size(SNR));
 for k = 1:length(SNR)
-%     d_noise(k, :) = awgn(d, SNR(k), 'measured');
-    d_noise(k,:) = d;
+    d_noise(:, k) = awgn(d, SNR(k), 'measured');
 end
 y_noise = awgn(s_mod, SNR(2), 'measured');
 
 %% Demodulation
-d_demod = zeros(length(SNR), length(data));
+d_demod = zeros(length(data), length(SNR));
 hDemod = comm.PSKDemodulator(M, 'BitOutput', true);
 for k = 1:length(SNR)
-    d_demod(k, :) = step(hDemod, d_noise(k, :)');
+    d_demod(:, k) = step(hDemod, d_noise(:, k));
 end
 
 %% Tinh BER
-BER = zeros(1, length(SNR));
+BER = zeros(length(SNR), 1);
 for k = 1:length(SNR)
-    BER(k) = sum(abs(d_demod(k,:)' - data))/length(data);
+    BER(k) = sum(abs(d_demod(:, k) - data))/length(data);
 end
 
 %% Decoding
 y_index = zeros(length(SNR), length(xcode));
 for k = 1: length(SNR)
-    tmp = vec2mat(d_demod(k,:), Nb);
+    tmp = vec2mat(d_demod(:, k)', Nb);
     y_index(k, :) = bi2de(tmp)';
 end
 
@@ -98,11 +97,12 @@ end
 yq = Mq(y_index + 1);
 %% Expand
 y = zeros(length(SNR), length(s));
+Yf = y;
 for k = 1:length(SNR)
     y(k, :) = compand(yq(k, :), A, Amax, 'A/expander');
+    Yf(k, :) = fft(y(k, :));
+    Yf(k, :) = fftshift(Yf(k, :));
 end
-Yf = fft(y);
-Yf = fftshift(Yf);
 
 %% Plotting
 h = scatterplot(d_noise(2, :),1,0,'xb');
@@ -123,12 +123,13 @@ hold on
 plot([real(s_mod) imag(s_mod)],'color','r')
 title('Dang tin hieu tai bo thu')
 
+% Eye diagram
 eyediagram([real(s_mod) imag(s_mod)],length(p)*2)
 title('Bieu do mat tin hieu phat')
-
 eyediagram([real(y_noise) imag(y_noise)],length(p)*2)
 title('Bieu do mat tin hieu tai bo thu')
 
+% Task 2d
 figure(7)
 subplot(211)
 plot(t, s);
@@ -154,3 +155,19 @@ plot (f, Yf(1, :));
 xlabel('f');
 ylabel('Y(f)')
 grid on;
+
+figure(9)
+subplot(length(SNR)+1, 1, 1)
+plot(t, s);
+title('Original signal');
+xlabel('t');
+ylabel('s(t)');
+grid on;
+for k = 1:length(SNR)
+    subplot(length(SNR)+1, 1, k+1)
+    plot(t, y(k, :));
+    title(['Reconstruct signal SNR = ', num2str(SNR(k)), 'dB']);
+    xlabel('t');
+    ylabel('y(t)');
+    grid on;
+end

@@ -12,8 +12,9 @@ fm = [200 800 100];
 Am = [1 2 3];
 A = 87.6; % compression parameter
 phi = [0 pi/2 pi/4];
-t = 0:Ts:10; % 10s
+t = 0:Ts:0.1; % 10s
 Ns = length(t);
+f = (-Ns/2:1:Ns/2-1)/(Ns*Ts);
 %% Sampling
 s = zeros(1, length(t));
 for kk = 1:length(fm)
@@ -49,43 +50,60 @@ M = 8; % so muc dieu che 8-PSK
 SNR = [5 8 12]; % [dB]
 %% Modulation
 % Create a 8-PSK modulator System object with bits as inputs and Gray-coded signal constellation
-hModulator = comm.PSKModulator(M,'BitInput',true);
+hModulator = comm.PSKModulator(M, 'BitInput', true);
 % Modulate and plot the data
 d = step(hModulator, data);
 
 % Mo hinh tuong duong bang goc
-t = 0:T_sym/50:T_sym;
-p = sqrt(2*Es/T_sym)*(1-cos(2*pi*t/T_sym));
-plot(t, p);
+tt = 0:T_sym/50:T_sym;
+p = sqrt(2*Es/T_sym)*(1-cos(2*pi*tt/T_sym));
+plot(tt, p);
 
 % Xac dinh dang tin hieu phat voi 10 ky hieu dau tien
 pp = repmat(p,10,1);    % clone vector p
-y = diag(d(1:10))*pp;
+s_mod = diag(d(1:10))*pp;
 % convert matrix to vector
-y = y';
-y = y(:)';
+s_mod = s_mod';
+s_mod = s_mod(:)';
 
 %% Transmit signal through an AWGN channel.
-d_noise = zeros(size(SNR), size(d));
-d_demod = zeros(size(SNR), size(data));
-
-for k = 1:3
-    d_noise(k, :) = awgn(d, SNR(k), 'measured');
+d_noise = zeros(size(d), size(SNR));
+for k = 1:length(SNR)
+    d_noise(:, k) = awgn(d, SNR(k), 'measured');
 end
-y_noise = awgn(y, SNR(2), 'measured');
+y_noise = awgn(s_mod, SNR(2), 'measured');
 
 %% Demodulation
+d_demod = zeros(length(data), length(SNR));
 hDemod = comm.PSKDemodulator(M, 'BitOutput', true);
-for k = 1:3
-    d_demod(k, :) = step(hDemod, d_noise(k, :)');
+for k = 1:length(SNR)
+    d_demod(:, k) = step(hDemod, d_noise(:, k));
 end
-
 
 %% Tinh BER
-BER = zeros(1, length(SNR));
-for k = 1:3
-    BER(k) = sum(abs(d_demod(k,:)' - data))/length(data);
+BER = zeros(length(SNR), 1);
+for k = 1:length(SNR)
+    BER(k) = sum(abs(d_demod(:, k) - data))/length(data);
 end
+
+%% Decoding
+y_index = zeros(length(SNR), length(xcode));
+for k = 1: length(SNR)
+    tmp = vec2mat(d_demod(:, k)', Nb);
+    y_index(k, :) = bi2de(tmp)';
+end
+
+%% De-quantization
+yq = Mq(y_index + 1);
+%% Expand
+y = zeros(length(SNR), length(s));
+Yf = y;
+for k = 1:length(SNR)
+    y(k, :) = compand(yq(k, :), A, Amax, 'A/expander');
+    Yf(k, :) = fft(y(k, :));
+    Yf(k, :) = fftshift(Yf(k, :));
+end
+
 %% Plotting
 h = scatterplot(d_noise(2, :),1,0,'xb');
 hold on;
@@ -97,17 +115,49 @@ plot(SNR, BER);
 
 figure(4)
 subplot(2,1,1)
-stem([real(y) imag(y)])
+stem([real(s_mod) imag(s_mod)])
 title('Dang xung phat')
 subplot(2,1,2)
 stem([real(y_noise) imag(y_noise)])
 hold on
-plot([real(y) imag(y)],'color','r')
+plot([real(s_mod) imag(s_mod)],'color','r')
 title('Dang tin hieu tai bo thu')
 
-eyediagram([real(y) imag(y)],length(p)*2)
+% Eye diagram
+eyediagram([real(s_mod) imag(s_mod)],length(p)*2)
 title('Bieu do mat tin hieu phat')
-
 eyediagram([real(y_noise) imag(y_noise)],length(p)*2)
 title('Bieu do mat tin hieu tai bo thu')
 
+% Task 2d
+figure(7)
+subplot(211)
+plot(t, s);
+title('Original signal');
+xlabel('t');
+ylabel('s(t)');
+grid on;
+subplot(212);
+plot(f, Sf);
+xlabel('f');
+ylabel('S(f)')
+grid on;
+
+figure(8)
+subplot(211);
+plot(t, y(1,:));
+title('Reconstruct signal');
+xlabel('t');
+ylabel('y(t)')
+grid on;
+subplot(212);
+plot (f, Yf(1, :));
+xlabel('f');
+ylabel('Y(f)')
+grid on;
+
+figure(9)
+for k = 1:length(SNR)
+    subplot(length(SNR)1k)
+    
+end
